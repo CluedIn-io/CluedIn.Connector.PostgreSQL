@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>CluedIn.Connector.PostgreSqlServer provides connectivity to a PostgreSql Server database</Description>
+    <AssemblyName>CluedIn.Connector.PostgreSqlServer</AssemblyName>
+    <RootNamespace>CluedIn.Connector.PostgreSqlServer</RootNamespace>
+    <IsCluedInServerComponent>true</IsCluedInServerComponent>
+    <PackageId>CluedIn.Connector.PostgreSqlServer</PackageId>
+    <Title>CluedIn.Connector.PostgreSqlServer</Title>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Resources\SqlServer.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\sqlserver.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CluedIn.Core" />
+    <PackageReference Include="CluedIn.Core.Agent" />
+    <PackageReference Include="CluedIn.Crawling" />
+    <PackageReference Include="ComponentHost" />
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Dapper.SqlBuilder" />
+    <PackageReference Include="Npgsql"  />
+  </ItemGroup>
+</Project>

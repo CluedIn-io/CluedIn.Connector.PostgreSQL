@@ -1,0 +1,81 @@
+﻿using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using CluedIn.Core.Connectors;
+using Microsoft.Data.SqlClient;
+using Npgsql;
+
+namespace CluedIn.Connector.PostgreSqlServer.Connector
+{
+    public class PostgreSqlClient : IPostgreSqlClient
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "<Pending>")]
+        public async Task ExecuteCommandAsync(IConnectorConnection config, string commandText, IList<NpgsqlParameter> param = null)
+        {
+            using (var connection = await GetConnection(config.Authentication))
+            {
+                var cmd = connection.CreateCommand();
+
+                cmd.CommandText = commandText;
+
+                if (param != null)
+                    cmd.Parameters.AddRange(param.ToArray());
+
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<NpgsqlConnection> GetConnection(IDictionary<string, object> config)
+        {
+            var cnxString = new NpgsqlConnectionStringBuilder()
+            {
+                Password = (string)config[PostgreSqlServerConstants.KeyName.Password],
+                Username = (string)config[PostgreSqlServerConstants.KeyName.Username],
+                Database = (string)config[PostgreSqlServerConstants.KeyName.DatabaseName],
+                Port =  (int)config[PostgreSqlServerConstants.KeyName.PortNumber],
+                Host = (string)config[PostgreSqlServerConstants.KeyName.Host],
+            };
+
+            var result = new NpgsqlConnection(cnxString.ToString());
+            
+            await result.OpenAsync();
+            return result;
+        }
+
+        public async Task<DataTable> GetTables(IDictionary<string, object> config, string name = null)
+        {
+            using (var connection = await GetConnection(config))
+            {
+                DataTable result;
+                if (!string.IsNullOrEmpty(name))
+                {
+                    var restrictions = new string[4];
+                    restrictions[2] = name;
+
+                    result = connection.GetSchema("Tables", restrictions);
+                }
+                else
+                {
+                    result = connection.GetSchema("Tables");
+                }
+
+                return result;
+            }
+        }
+
+        public async Task<DataTable> GetTableColumns(IDictionary<string, object> config, string tableName)
+        {
+            using (var connection = await GetConnection(config))
+            {
+
+                var restrictions = new string[4];
+                restrictions[2] = tableName;
+
+                var result = connection.GetSchema("Columns", restrictions);
+
+                return result;
+            }
+        }
+    }
+}
