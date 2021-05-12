@@ -28,17 +28,14 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
         public async Task<NpgsqlConnection> GetConnection(IDictionary<string, object> config)
         {
-            var cnxString = new NpgsqlConnectionStringBuilder()
-            {
-                Password = (string)config[PostgreSqlServerConstants.KeyName.Password],
-                Username = (string)config[PostgreSqlServerConstants.KeyName.Username],
-                Database = (string)config[PostgreSqlServerConstants.KeyName.DatabaseName],
-                Port =  (int)config[PostgreSqlServerConstants.KeyName.PortNumber],
-                Host = (string)config[PostgreSqlServerConstants.KeyName.Host],
-            };
+            var cnxString = new NpgsqlConnectionStringBuilder();
+            cnxString.Password = (string)config[PostgreSqlServerConstants.KeyName.Password];
+            cnxString.Username = (string)config[PostgreSqlServerConstants.KeyName.Username];
+            cnxString.Database = (string)config[PostgreSqlServerConstants.KeyName.DatabaseName];
+            cnxString.Host = (string)config[PostgreSqlServerConstants.KeyName.Host];
+            cnxString.Port = 5432;
 
             var result = new NpgsqlConnection(cnxString.ToString());
-            
             await result.OpenAsync();
             return result;
         }

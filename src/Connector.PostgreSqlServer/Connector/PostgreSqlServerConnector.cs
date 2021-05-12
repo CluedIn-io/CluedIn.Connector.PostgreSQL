@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CluedIn.Core;
 using CluedIn.Core.Connectors;
-using CluedIn.Core.Data.Vocabularies;
+using CluedIn.Core.Data.Vocabularies;   
 using CluedIn.Core.DataStore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -50,18 +50,17 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
         public string BuildCreateContainerSql(CreateContainerModel model)
         {
             var builder = new StringBuilder();
-            builder.AppendLine($"CREATE TABLE [{Sanitize(model.Name)}](");
+            builder.AppendLine($"CREATE TABLE {Sanitize(model.Name)}(");
 
             var index = 0;
             var count = model.DataTypes.Count;
             foreach (var type in model.DataTypes)
             {
-                builder.AppendLine($"[{Sanitize(type.Name)}] {GetDbType(type.Type)} NULL{(index < count - 1 ? "," : "")}");
-
+                builder.AppendLine($"{Sanitize(type.Name)} {GetDbType(type.Type)} NULL {(type.Name.ToLower().Equals("originentitycode") ? "PRIMARY KEY" : "")}{(index < count - 1 ? "," : "")} ");
                 index++;
             }
 
-            builder.AppendLine(") ON[PRIMARY]");
+            builder.AppendLine(") ");
 
             var sql = builder.ToString();
             return sql;
@@ -91,7 +90,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
         public string BuildEmptyContainerSql(string id)
         {
             var builder = new StringBuilder();
-            builder.AppendLine($"TRUNCATE TABLE [{Sanitize(id)}]");
+            builder.AppendLine($"TRUNCATE TABLE {Sanitize(id)}");
             var sql = builder.ToString();
             return sql;
         }
@@ -258,6 +257,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
         public override async Task<bool> VerifyConnection(ExecutionContext executionContext, Guid providerDefinitionId)
         {
             var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
+            _logger.LogInformation("Getting Authentication Details");
             return await VerifyConnection(executionContext, config.Authentication);
         }
 
@@ -266,7 +266,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             try
             {
                 var connection = await _client.GetConnection(config);
-
+                _logger.LogDebug($"PostgreSQL State: {connection.State}");
                 return connection.State == ConnectionState.Open;
             }
             catch (Exception e)
@@ -299,27 +299,21 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
         public string BuildStoreDataSql(string containerName, IDictionary<string, object> data, out List<NpgsqlParameter> param)
         {
             var builder = new StringBuilder();
-            
 
             var nameList = data.Select(n => Sanitize(n.Key)).ToList();
-            var fieldList = string.Join(", ", nameList.Select(n => $"[{n}]"));
+            var fieldList = string.Join(", ", nameList.Select(n => $"{n}"));
             var paramList = string.Join(", ", nameList.Select(n => $"@{n}"));
-            var insertList = string.Join(", ", nameList.Select(n => $"source.[{n}]"));
-            var updateList = string.Join(", ", nameList.Select(n => $"target.[{n}] = source.[{n}]"));
+            var insertList = string.Join(", ", nameList.Select(n => $"{n}"));
+            var valueslist = string.Join(",", (from dataType in data select $"'{dataType.Value}'").ToList());
+            var updateList = string.Join(",", (from dataType in data select $"{Sanitize(dataType.Key)} = '{dataType.Value}'").ToList());
 
-            builder.AppendLine($"MERGE [{Sanitize(containerName)}] AS target");
-            builder.AppendLine($"USING (SELECT {paramList}) AS source ({fieldList})");
-            builder.AppendLine("  ON (target.[OriginEntityCode] = source.[OriginEntityCode])");
-            builder.AppendLine("WHEN MATCHED THEN");
+            builder.AppendLine($"INSERT INTO {Sanitize(containerName)} ({fieldList})");
+            builder.AppendLine($"VALUES ({valueslist})");
+            builder.AppendLine($"ON CONFLICT(OriginEntityCode)");
+            builder.AppendLine($"DO");
             builder.AppendLine($"  UPDATE SET {updateList}");
-            builder.AppendLine("WHEN NOT MATCHED THEN");
-            builder.AppendLine($"  INSERT ({fieldList})");
-            builder.AppendLine($"  VALUES ({insertList});");
-
-
 
             param = (from dataType in data let name = Sanitize(dataType.Key) select new NpgsqlParameter { ParameterName = $"@{name}", Value = dataType.Value ?? ""}).ToList();
-
             return builder.ToString();
         }
 
@@ -347,7 +341,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
         private string BuildRenameContainerSql(string id, string newName, out List<NpgsqlParameter> param)
         {
-            var result = $"IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{Sanitize(id)}') EXEC sp_rename @tableName, @newName";
+            var result = $"ALTER TABLE IF EXISTS {Sanitize(id)} RENAME TO {Sanitize(newName)}";
 
             param = new List<NpgsqlParameter>
             {
@@ -366,8 +360,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
         private string BuildRemoveContainerSql(string id)
         {
-            var result = $"DROP TABLE [{Sanitize(id)}] IF EXISTS";
-
+            var result = $"DROP TABLE  IF EXISTS {Sanitize(id)}";
             return result;
         }
 
