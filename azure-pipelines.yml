@@ -49,3 +49,9 @@ steps:
     NUGET_KEY: $(nuget.key)
 
 - template: crawler.build.yml@templates
+- task: NuGetCommand@2
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '4b96c635-e454-4095-acdb-a7c84ae00b45/1478b972-224c-4c2c-8cb4-e40d23116279'
