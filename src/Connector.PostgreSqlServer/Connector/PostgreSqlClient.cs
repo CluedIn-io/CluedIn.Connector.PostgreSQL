@@ -35,6 +35,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             cnxString.Host = (string)config[PostgreSqlServerConstants.KeyName.Host];
             cnxString.Port = 5432;
             cnxString.SslMode = SslMode.Require;
+            cnxString.TrustServerCertificate = true;
 
             var result = new NpgsqlConnection(cnxString.ToString());
             await result.OpenAsync();
