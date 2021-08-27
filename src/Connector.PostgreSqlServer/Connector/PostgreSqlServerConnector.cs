@@ -83,7 +83,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
                 var message = $"Could not empty Container {id}";
                 _logger.LogError(e, message);
 
-                throw new EmptyContainerException(message);
+                // throw new EmptyContainerException(message);
             }
         }
 
@@ -335,7 +335,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
                 var message = $"Could not archive Container {id}";
                 _logger.LogError(e, message);
 
-                throw new EmptyContainerException(message);
+                // throw new EmptyContainerException(message);
             }
         }
 
@@ -383,7 +383,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
                 var message = $"Could not rename Container {id}";
                 _logger.LogError(e, message);
 
-                throw new EmptyContainerException(message);
+                // throw new EmptyContainerException(message);
             }
         }
 
@@ -404,7 +404,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
                 var message = $"Could not remove Container {id}";
                 _logger.LogError(e, message);
 
-                throw new EmptyContainerException(message);
+                // throw new EmptyContainerException(message);
             }
         }
 
