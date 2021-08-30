@@ -200,6 +200,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
         private VocabularyKeyDataType GetVocabType(string rawType)
         {
+
             return rawType.ToLower() switch
             {
                 "bigint" => VocabularyKeyDataType.Text,
@@ -292,7 +293,6 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             {
                 var message = $"Could not store data into Container '{containerName}' for Connector {providerDefinitionId}";
                 _logger.LogError(e, message);
-                throw new StoreDataException(message);
             }
         }
 
@@ -304,7 +304,18 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             var fieldList = string.Join(", ", nameList.Select(n => $"{n}"));
             var paramList = string.Join(", ", nameList.Select(n => $"@{n}"));
             var insertList = string.Join(", ", nameList.Select(n => $"{n}"));
-            var valueslist = string.Join(",", (from dataType in data select $"'{dataType.Value}'").ToList());
+            var list = new List<string>();
+
+            foreach (var dataType in data)
+            {
+                if (dataType.Value is List<object> dataTypeValueList)
+                {
+                    list.Add(string.Join(",", dataTypeValueList.Select(x => x.ToString())));
+                }
+                list.Add($"'{dataType.Value}'");
+            }
+
+            var valueslist = string.Join(",", list);
             var updateList = string.Join(",", (from dataType in data select $"{Sanitize(dataType.Key)} = '{dataType.Value}'").ToList());
 
             builder.AppendLine($"INSERT INTO {Sanitize(containerName)} ({fieldList})");
