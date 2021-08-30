@@ -342,7 +342,24 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             builder.AppendLine($"DO");
             builder.AppendLine($"  UPDATE SET {updateList}");
 
-            param = (from dataType in data let name = Sanitize(dataType.Key) select new NpgsqlParameter { ParameterName = $"@{name}", Value = dataType.Value ?? ""}).ToList();
+            param = new List<NpgsqlParameter>();
+            foreach (var dataType in data)
+            {
+                string name = Sanitize(dataType.Key);
+                if (dataType.Value is List<object> dataTypeValueList)
+                {
+                    param.Add(new NpgsqlParameter
+                    {
+                        ParameterName = $"@{name}",
+                        Value = string.Join(",", dataTypeValueList.Select(x => x.ToString()))
+                    });
+                }
+                else
+                {
+                    param.Add(new NpgsqlParameter {ParameterName = $"@{name}", Value = dataType.Value ?? ""});
+                }
+            }
+
             return builder.ToString();
         }
 
