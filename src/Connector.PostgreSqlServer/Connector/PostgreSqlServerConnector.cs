@@ -312,7 +312,10 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
                 {
                     list.Add(string.Join(",", dataTypeValueList.Select(x => x.ToString())));
                 }
-                list.Add($"'{dataType.Value}'");
+                else
+                {
+                    list.Add($"'{dataType.Value}'");
+                }
             }
 
             var valueslist = string.Join(",", list);
