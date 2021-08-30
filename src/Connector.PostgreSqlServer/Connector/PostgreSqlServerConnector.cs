@@ -302,27 +302,42 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
             var nameList = data.Select(n => Sanitize(n.Key)).ToList();
             var fieldList = string.Join(", ", nameList.Select(n => $"{n}"));
-            var paramList = string.Join(", ", nameList.Select(n => $"@{n}"));
-            var insertList = string.Join(", ", nameList.Select(n => $"{n}"));
-            var list = new List<string>();
+
+            var values = new List<string>();
 
             foreach (var dataType in data)
             {
                 if (dataType.Value is List<object> dataTypeValueList)
                 {
-                    list.Add(string.Join(",", dataTypeValueList.Select(x => x.ToString())));
+                    values.Add(string.Join(",", dataTypeValueList.Select(x => x.ToString())));
                 }
                 else
                 {
-                    list.Add($"'{dataType.Value}'");
+                    values.Add($"'{dataType.Value}'");
                 }
             }
 
-            var valueslist = string.Join(",", list);
-            var updateList = string.Join(",", (from dataType in data select $"{Sanitize(dataType.Key)} = '{dataType.Value}'").ToList());
+            var list = new List<string>();
+            foreach (var dataType in data)
+            {
+                string updateValue;
+
+                if (dataType.Value is List<object> dataTypeValueList)
+                {
+                    updateValue = string.Join(",", dataTypeValueList.Select(x => x.ToString()));
+                }
+                else
+                {
+                    updateValue = dataType.Value.ToString();
+                }
+
+                list.Add($"{Sanitize(dataType.Key)} = '{updateValue}'");
+            }
+
+            var updateList = string.Join(",", list);
 
             builder.AppendLine($"INSERT INTO {Sanitize(containerName)} ({fieldList})");
-            builder.AppendLine($"VALUES ({valueslist})");
+            builder.AppendLine($"VALUES ({string.Join(",", values)})");
             builder.AppendLine($"ON CONFLICT(OriginEntityCode)");
             builder.AppendLine($"DO");
             builder.AppendLine($"  UPDATE SET {updateList}");
