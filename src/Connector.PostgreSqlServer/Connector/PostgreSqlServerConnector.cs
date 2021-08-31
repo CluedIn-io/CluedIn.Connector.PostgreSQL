@@ -309,7 +309,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             {
                 if (dataType.Value is List<object> dataTypeValueList)
                 {
-                    values.Add(string.Join(",", dataTypeValueList.Select(x => x?.ToString() ?? string.Empty)));
+                    values.Add("'" + string.Join(",", dataTypeValueList.Select(x => x?.ToString() ?? string.Empty)) + "'");
                 }
                 else
                 {
