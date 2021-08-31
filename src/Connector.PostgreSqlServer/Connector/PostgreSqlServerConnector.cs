@@ -309,11 +309,11 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             {
                 if (dataType.Value is List<object> dataTypeValueList)
                 {
-                    values.Add(string.Join(",", dataTypeValueList.Select(x => x.ToString())));
+                    values.Add(string.Join(",", dataTypeValueList.Select(x => x?.ToString() ?? string.Empty)));
                 }
                 else
                 {
-                    values.Add($"'{dataType.Value}'");
+                    values.Add($"'{dataType.Value ?? string.Empty}'");
                 }
             }
 
@@ -324,11 +324,11 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
                 if (dataType.Value is List<object> dataTypeValueList)
                 {
-                    updateValue = string.Join(",", dataTypeValueList.Select(x => x.ToString()));
+                    updateValue = string.Join(",", dataTypeValueList.Select(x => x?.ToString() ?? string.Empty));
                 }
                 else
                 {
-                    updateValue = dataType.Value.ToString();
+                    updateValue = dataType.Value?.ToString() ?? string.Empty;
                 }
 
                 list.Add($"{Sanitize(dataType.Key)} = '{updateValue}'");
@@ -345,18 +345,18 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             param = new List<NpgsqlParameter>();
             foreach (var dataType in data)
             {
-                string name = Sanitize(dataType.Key);
+                var name = Sanitize(dataType.Key);
                 if (dataType.Value is List<object> dataTypeValueList)
                 {
                     param.Add(new NpgsqlParameter
                     {
                         ParameterName = $"@{name}",
-                        Value = string.Join(",", dataTypeValueList.Select(x => x.ToString()))
+                        Value = string.Join(",", dataTypeValueList.Select(x => x?.ToString() ?? string.Empty))
                     });
                 }
                 else
                 {
-                    param.Add(new NpgsqlParameter {ParameterName = $"@{name}", Value = dataType.Value ?? ""});
+                    param.Add(new NpgsqlParameter {ParameterName = $"@{name}", Value = dataType.Value ?? string.Empty});
                 }
             }
 
