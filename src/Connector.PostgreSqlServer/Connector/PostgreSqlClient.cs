@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CluedIn.Core.Connectors;
 using Microsoft.Data.SqlClient;
 using Npgsql;
+using Serilog;
 
 namespace CluedIn.Connector.PostgreSqlServer.Connector
 {
@@ -13,6 +14,8 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "<Pending>")]
         public async Task ExecuteCommandAsync(IConnectorConnection config, string commandText, IList<NpgsqlParameter> param = null)
         {
+            Log.Logger.Information(commandText);
+
             using (var connection = await GetConnection(config.Authentication))
             {
                 var cmd = connection.CreateCommand();
