@@ -1,43 +1,217 @@
-﻿using System;
+﻿using CluedIn.Connector.PostgreSqlServer.Features;
+using CluedIn.Core;
+using CluedIn.Core.Connectors;
+using CluedIn.Core.Data.Parts;
+using CluedIn.Core.Data.Vocabularies;
+using CluedIn.Core.DataStore;
+using CluedIn.Core.Streams.Models;
+using Connector.Common;
+using Connector.Common.Features;
+using Microsoft.Extensions.Logging;
+using Npgsql;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using CluedIn.Core;
-using CluedIn.Core.Connectors;
-using CluedIn.Core.Data.Vocabularies;   
-using CluedIn.Core.DataStore;
-using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace CluedIn.Connector.PostgreSqlServer.Connector
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "<Pending>")]
-    public class PostgreSqlServerConnector : ConnectorBase
+    public class PostgreSqlServerConnector : SqlConnectorBase<PostgreSqlServerConnector, IPostgreSqlClient>,
+        IConnectorStreamModeSupport
     {
-        private readonly ILogger<PostgreSqlServerConnector> _logger;
-        private readonly IPostgreSqlClient _client;
+        private const string TimestampFieldName = "TimeStamp";
+        private const string ChangeTypeFieldName = "ChangeType";
+        private const string CorrelationIdFieldName = "CorrelationId";
+        private readonly IList<string> _defaultKeyFields = new List<string> { "OriginEntityCode" };
+        private readonly IFeatureStore _features;
 
-        public PostgreSqlServerConnector(IConfigurationRepository repo, ILogger<PostgreSqlServerConnector> logger, IPostgreSqlClient client) : base(repo)
+        public PostgreSqlServerConnector(IConfigurationRepository repository, ILogger<PostgreSqlServerConnector> logger,
+            IPostgreSqlClient client,
+            ICommonServiceHolder serviceHolder, IPostgreSqlServerConstants constants) : base(repository, logger, client,
+            serviceHolder, constants.ProviderId)
         {
-            ProviderId = PostgreSqlServerConstants.ProviderId;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _features = new PostgreSqlFeatureStore();
         }
 
-        public override async Task CreateContainer(ExecutionContext executionContext, Guid providerDefinitionId, CreateContainerModel model)
+        public StreamMode StreamMode { get; private set; } = StreamMode.Sync;
+
+        public virtual IList<StreamMode> GetSupportedModes()
+        {
+            return new List<StreamMode> { StreamMode.Sync, StreamMode.EventStream };
+        }
+
+        public virtual void SetMode(StreamMode mode)
+        {
+            StreamMode = mode;
+        }
+
+        public async Task StoreData(ExecutionContext executionContext, Guid providerDefinitionId, string containerName,
+            string correlationId, DateTimeOffset timestamp, VersionChangeType changeType,
+            IDictionary<string, object> data)
+        {
+            try
+            {
+                var dataToUse = new Dictionary<string, object>(data);
+                if (StreamMode == StreamMode.EventStream)
+                {
+                    dataToUse.Add(TimestampFieldName, timestamp);
+                    dataToUse.Add(ChangeTypeFieldName, changeType.ToString());
+                    dataToUse.Add(CorrelationIdFieldName, correlationId);
+                }
+                else
+                    dataToUse.Add(TimestampFieldName, timestamp);
+
+                var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
+
+                // feature start here
+
+                var feature = _features.GetFeature<IBuildStoreDataFeature>();
+                IEnumerable<PostgreSqlConnectorCommand> commands;
+                if (feature is IBuildStoreDataForMode modeFeature)
+                    commands = modeFeature.BuildStoreDataSql(containerName, dataToUse, _defaultKeyFields, StreamMode,
+                        correlationId, _logger);
+                else
+                    commands = feature.BuildStoreDataSql(containerName, dataToUse, _defaultKeyFields, _logger);
+
+                foreach (var command in commands)
+                    await _client.ExecuteCommandAsync(config, command.Text, command.Parameters);
+            }
+            catch (Exception e)
+            {
+                var message =
+                    $"Could not store data into Container '{containerName}' for Connector {providerDefinitionId}";
+                _logger.LogError(e, message);
+                throw new StoreDataException(message);
+            }
+        }
+
+        public Task<string> GetCorrelationId()
+        {
+            return Task.FromResult(Guid.NewGuid().ToString());
+        }
+
+        public async Task StoreEdgeData(ExecutionContext executionContext, Guid providerDefinitionId,
+            string containerName, string originEntityCode, string correlationId, DateTimeOffset timestamp,
+            VersionChangeType changeType, IEnumerable<string> edges)
+        {
+            try
+            {
+                var edgeTableName = $"{containerName.SqlSanitize()}Edges".ToLowerInvariant();
+                if (await CheckTableExists(executionContext, providerDefinitionId, edgeTableName))
+                {
+                    var sql = BuildEdgeStoreDataSql(edgeTableName, originEntityCode, correlationId, edges,
+                        out var param);
+
+                    if (!string.IsNullOrWhiteSpace(sql))
+                    {
+                        _logger.LogDebug($"Sql Server Connector - Store Edge Data - Generated query: {sql}");
+
+                        var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
+                        await _client.ExecuteCommandAsync(config, sql, param);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                var message =
+                    $"Could not store edge data into Container '{containerName}' for Connector {providerDefinitionId}";
+                _logger.LogError(e, message);
+                throw new StoreDataException(message);
+            }
+        }
+
+        public override async Task CreateContainer(ExecutionContext executionContext, Guid providerDefinitionId,
+            CreateContainerModel model)
         {
             try
             {
                 var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
 
-                var sql = BuildCreateContainerSql(model);
+                await CheckDbSchemaAsync(config.Authentication);
 
-                _logger.LogDebug($"PostgreSql Server Connector - Create Container - Generated query: {sql}");
+                async Task createTable(string tableName, IEnumerable<ConnectionDataType> columns,
+                    IEnumerable<string> keys, string context)
+                {
+                    try
+                    {
+                        var commands = _features.GetFeature<IBuildCreateContainerFeature>()
+                            .BuildCreateContainerSql(tableName, columns, keys, context, StreamMode, _logger);
 
-                await _client.ExecuteCommandAsync(config, sql);
+                        // Do not create IDX on PrimaryTable if we are in SyncMode. It has a PK
+                        if (context != "Data" || context == "Data" && StreamMode == StreamMode.EventStream)
+                        {
+                            var indexCommands = _features.GetFeature<IBuildCreateIndexFeature>()
+                                .BuildCreateIndexSql(tableName, _defaultKeyFields, _logger);
+
+                            commands = commands.Union(indexCommands);
+                        }
+
+                        foreach (var command in commands)
+                        {
+                            _logger.LogDebug(
+                                "Sql Server Connector - Create Container[{Context}] - Generated query: {sql}", context,
+                                command.Text);
+
+                            await _client.ExecuteCommandAsync(config, command.Text, command.Parameters);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        var message = $"Could not create Container {tableName} for Connector {providerDefinitionId}";
+                        _logger.LogError(e, message);
+                        throw new CreateContainerException(message);
+                    }
+                }
+
+                var container = new Container(model.Name, StreamMode);
+                var codesTable = container.Tables["Codes"];
+
+                var connectionDataTypes = model.DataTypes;
+
+                if (StreamMode == StreamMode.EventStream)
+                {
+                    connectionDataTypes.Add(new ConnectionDataType
+                    {
+                        Name = TimestampFieldName,
+                        Type = VocabularyKeyDataType.DateTime
+                    });
+                    connectionDataTypes.Add(new ConnectionDataType
+                    {
+                        Name = ChangeTypeFieldName,
+                        Type = VocabularyKeyDataType.Text
+                    });
+                    connectionDataTypes.Add(new ConnectionDataType
+                    {
+                        Name = CorrelationIdFieldName,
+                        Type = VocabularyKeyDataType.Text
+                    });
+                }
+                else
+                    connectionDataTypes.Add(new ConnectionDataType
+                    {
+                        Name = TimestampFieldName,
+                        Type = VocabularyKeyDataType.DateTime
+                    });
+
+                var tasks = new List<Task>
+                {
+                    // Primary table
+                    createTable(container.PrimaryTable, connectionDataTypes, _defaultKeyFields, "Data"),
+
+                    // Codes table
+                    createTable(codesTable.Name, codesTable.Columns, codesTable.Keys, "Codes")
+                };
+
+                // We optionally build an edges table
+                if (model.CreateEdgeTable)
+                {
+                    var edgesTable = container.Tables["Edges"];
+                    tasks.Add(createTable(edgesTable.Name, edgesTable.Columns, edgesTable.Keys, "Edges"));
+                }
+
+                await Task.WhenAll(tasks);
             }
             catch (Exception e)
             {
@@ -47,352 +221,94 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             }
         }
 
-        public string BuildCreateContainerSql(CreateContainerModel model)
+        public override async Task<string> GetValidContainerName(ExecutionContext executionContext,
+            Guid providerDefinitionId, string name)
         {
-            var builder = new StringBuilder();
-            builder.AppendLine($"CREATE TABLE {Sanitize(model.Name)}(");
-
-            var index = 0;
-            var count = model.DataTypes.Count;
-            foreach (var type in model.DataTypes)
-            {
-                builder.AppendLine($"{Sanitize(type.Name)} {GetDbType(type.Type)} NULL {(type.Name.ToLower().Equals("originentitycode") ? "PRIMARY KEY" : "")}{(index < count - 1 ? "," : "")} ");
-                index++;
-            }
-
-            builder.AppendLine(") ");
-
-            var sql = builder.ToString();
-            return sql;
+            return await _commonServiceHolder.GetValidContainerName(executionContext, providerDefinitionId, name,
+                CheckTableExists);
         }
 
-        public override async Task EmptyContainer(ExecutionContext executionContext, Guid providerDefinitionId, string id)
+        private async Task<bool> CheckTableExists(ExecutionContext executionContext, Guid providerDefinitionId,
+            string name)
         {
+            return await _commonServiceHolder.CheckTableExists(executionContext, providerDefinitionId, name, _client,
+                this, _logger);
+        }
+
+        public override Task StoreData(ExecutionContext executionContext, Guid providerDefinitionId,
+            string containerName, IDictionary<string, object> data)
+        {
+            return StoreData(executionContext, providerDefinitionId, containerName, null, DateTimeOffset.Now,
+                VersionChangeType.NotSet, data);
+        }
+
+        public override async Task ArchiveContainer(ExecutionContext executionContext, Guid providerDefinitionId,
+            string oldTableName)
+        {
+            if (oldTableName is null)
+                throw new ArgumentNullException(nameof(oldTableName));
+
             try
             {
                 var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
 
-                var sql = BuildEmptyContainerSql(id);
+                var newName = await GetValidContainerName(executionContext, providerDefinitionId,
+                    $"{oldTableName}{DateTime.Now:yyyyMMddHHmmss}");
+                var sql = BuildRenameContainerSql(oldTableName, newName);
 
-                _logger.LogDebug($"PostgreSql Server Connector - Empty Container - Generated query: {sql}");
+                _logger.LogDebug($"PostgreSql Server Connector - Archive Container - Generated query: {sql}");
 
                 await _client.ExecuteCommandAsync(config, sql);
             }
             catch (Exception e)
             {
-                var message = $"Could not empty Container {id}";
+                var message = $"Could not archive Container {oldTableName}";
                 _logger.LogError(e, message);
 
                 throw new EmptyContainerException(message);
             }
         }
 
-        public string BuildEmptyContainerSql(string id)
+        private string BuildRenameContainerSql(string oldTableName, string newTableName)
         {
-            var builder = new StringBuilder();
-            builder.AppendLine($"TRUNCATE TABLE {Sanitize(id)}");
-            var sql = builder.ToString();
-            return sql;
+            return $"ALTER TABLE IF EXISTS {oldTableName.SqlSanitize()} RENAME TO {newTableName.SqlSanitize()}";
         }
 
-        private string Sanitize(string str)
+        private string BuildRemoveContainerSql(string tableName)
         {
-            return str.Replace("--", "").Replace(";", "").Replace("'", "");       // Bare-bones sanitization to prevent Sql Injection. Extra info here http://sommarskog.se/dynamic_sql.html
+            return $"DROP TABLE  IF EXISTS {tableName.SqlSanitize()}";
         }
 
-        public override Task<string> GetValidDataTypeName(ExecutionContext executionContext, Guid providerDefinitionId, string name)
+        public override Task RenameContainer(ExecutionContext executionContext, Guid providerDefinitionId, string id,
+            string newName)
         {
-            // Strip non-alpha numeric characters
-            var result = Regex.Replace(name, @"[^A-Za-z0-9]+", "");
-
-            return Task.FromResult(result);
+            throw new NotImplementedException();
         }
 
-        public override async Task<string> GetValidContainerName(ExecutionContext executionContext, Guid providerDefinitionId, string name)
+        public override Task<IEnumerable<IConnectorContainer>> GetContainers(ExecutionContext executionContext,
+            Guid providerDefinitionId)
         {
-            // Strip non-alpha numeric characters
-            var result = Regex.Replace(name, @"[^A-Za-z0-9]+", "");
-
-            // Check if exists
-            if (await CheckTableExists(executionContext, providerDefinitionId, result))
-            {
-                // If exists, append count like in windows explorer
-                var count = 0;
-                string newName;
-                do
-                {
-                    count++;
-                    newName = $"{result}{count}";
-                } while (await CheckTableExists(executionContext, providerDefinitionId, newName));
-
-                result = newName;
-            }
-
-            // return new name
-            return result;
+            throw new NotImplementedException();
         }
 
-        private async Task<bool> CheckTableExists(ExecutionContext executionContext, Guid providerDefinitionId, string name)
+        public override Task<IEnumerable<IConnectionDataType>> GetDataTypes(ExecutionContext executionContext,
+            Guid providerDefinitionId, string containerId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task EmptyContainer(ExecutionContext executionContext, Guid providerDefinitionId, string id)
+        {
+            throw new NotImplementedException();
+        }
+
+        //not used
+        public override async Task RemoveContainer(ExecutionContext executionContext, Guid providerDefinitionId,
+            string id)
         {
             try
             {
                 var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
-                var tables = await _client.GetTables(config.Authentication, name);
-
-                return tables.Rows.Count > 0;
-            }
-            catch (Exception e)
-            {
-                var message = $"Error checking Container '{name}' exists for Connector {providerDefinitionId}";
-                _logger.LogError(e, message);
-                throw new ConnectionException(message);
-            }
-        }
-
-        public override async Task<IEnumerable<IConnectorContainer>> GetContainers(ExecutionContext executionContext, Guid providerDefinitionId)
-        {
-            try
-            {
-                var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
-                var tables = await _client.GetTables(config.Authentication);
-
-                var result = from DataRow row in tables.Rows
-                             select row["TABLE_NAME"] as string into tableName
-                             select new PostgreSqlServerConnectorContainer { Id = tableName, Name = tableName };
-
-                return result.ToList();
-            }
-            catch (Exception e)
-            {
-                var message = $"Could not get Containers for Connector {providerDefinitionId}";
-                _logger.LogError(e, message);
-                throw new GetContainersException(message);
-            }
-        }
-
-        public override async Task<IEnumerable<IConnectionDataType>> GetDataTypes(ExecutionContext executionContext, Guid providerDefinitionId, string containerId)
-        {
-            try
-            {
-                var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
-                var tables = await _client.GetTableColumns(config.Authentication, containerId);
-
-                var result = from DataRow row in tables.Rows
-                             let name = row["COLUMN_NAME"] as string
-                             let rawType = row["DATA_TYPE"] as string
-                             let type = GetVocabType(rawType)
-                             select new PostgreSqlServerConnectorDataType
-                             {
-                                 Name = name,
-                                 RawDataType = rawType,
-                                 Type = type
-                             };
-
-                return result.ToList();
-            }
-            catch (Exception e)
-            {
-                var message = $"Could not get Data types for Container '{containerId}' for Connector {providerDefinitionId}";
-                _logger.LogError(e, message);
-                throw new GetDataTypesException(message);
-            }
-        }
-
-        private VocabularyKeyDataType GetVocabType(string rawType)
-        {
-            return rawType.ToLower() switch
-            {
-                "bigint" => VocabularyKeyDataType.Text,
-                "int" => VocabularyKeyDataType.Text,
-                "smallint" => VocabularyKeyDataType.Text,
-                "tinyint" => VocabularyKeyDataType.Text,
-                "bit" => VocabularyKeyDataType.Text,
-                "decimal" => VocabularyKeyDataType.Text,
-                "numeric" => VocabularyKeyDataType.Text,
-                "float" => VocabularyKeyDataType.Text,
-                "real" => VocabularyKeyDataType.Text,
-                "money" => VocabularyKeyDataType.Text,
-                "smallmoney" => VocabularyKeyDataType.Text,
-                "datetime" => VocabularyKeyDataType.Text,
-                "smalldatetime" => VocabularyKeyDataType.Text,
-                "date" => VocabularyKeyDataType.Text,
-                "datetimeoffset" => VocabularyKeyDataType.Text,
-                "time" => VocabularyKeyDataType.Text,
-                "char" => VocabularyKeyDataType.Text,
-                "varchar" => VocabularyKeyDataType.Text,
-                "text" => VocabularyKeyDataType.Text,
-                "nchar" => VocabularyKeyDataType.Text,
-                "nvarchar" => VocabularyKeyDataType.Text,
-                "ntext" => VocabularyKeyDataType.Text,
-                "binary" => VocabularyKeyDataType.Text,
-                "varbinary" => VocabularyKeyDataType.Text,
-                "image" => VocabularyKeyDataType.Text,
-                "timestamp" => VocabularyKeyDataType.Text,
-                "uniqueidentifier" => VocabularyKeyDataType.Guid,
-                "XML" => VocabularyKeyDataType.Xml,
-                "geometry" => VocabularyKeyDataType.Text,
-                "geography" => VocabularyKeyDataType.GeographyLocation,
-                _ => VocabularyKeyDataType.Text
-            };
-        }
-
-        private string GetDbType(VocabularyKeyDataType type)
-        {
-            //return type switch //TODO: LJU: Temporary change until we get vocabularies resolved @ LHO.
-            //{
-            //    VocabularyKeyDataType.Integer => "bigint",
-            //    VocabularyKeyDataType.Number => "decimal(18,4)",
-            //    VocabularyKeyDataType.Money => "money",
-            //    VocabularyKeyDataType.DateTime => "datetime2",
-            //    VocabularyKeyDataType.Time => "time",
-            //    VocabularyKeyDataType.Xml => "XML",
-            //    VocabularyKeyDataType.Guid => "uniqueidentifier",
-            //    VocabularyKeyDataType.GeographyLocation => "geography",
-            //    _ => "nvarchar(max)"
-            //};
-
-            return "text";
-        }
-
-        public override async Task<bool> VerifyConnection(ExecutionContext executionContext, Guid providerDefinitionId)
-        {
-            var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
-            _logger.LogInformation("Getting Authentication Details");
-            return await VerifyConnection(executionContext, config.Authentication);
-        }
-
-        public override async Task<bool> VerifyConnection(ExecutionContext executionContext, IDictionary<string, object> config)
-        {
-            try
-            {
-                var connection = await _client.GetConnection(config);
-                _logger.LogDebug($"PostgreSQL State: {connection.State}");
-                return connection.State == ConnectionState.Open;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error verifying connection");
-                throw new ConnectionException();
-            }
-        }
-
-        public override async Task StoreData(ExecutionContext executionContext, Guid providerDefinitionId, string containerName, IDictionary<string, object> data)
-        {
-            try
-            {
-                var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
-
-                var sql = BuildStoreDataSql(containerName, data, out var param);
-
-                _logger.LogDebug($"PostgreSql Server Connector - Store Data - Generated query: {sql}");
-
-                await _client.ExecuteCommandAsync(config, sql, param);
-            }
-            catch (Exception e)
-            {
-                var message = $"Could not store data into Container '{containerName}' for Connector {providerDefinitionId}";
-                _logger.LogError(e, message);
-                throw new StoreDataException(message);
-            }
-        }
-
-        public string BuildStoreDataSql(string containerName, IDictionary<string, object> data, out List<NpgsqlParameter> param)
-        {
-            var builder = new StringBuilder();
-
-            var nameList = data.Select(n => Sanitize(n.Key)).ToList();
-            var fieldList = string.Join(", ", nameList.Select(n => $"{n}"));
-            var paramList = string.Join(", ", nameList.Select(n => $"@{n}"));
-            var insertList = string.Join(", ", nameList.Select(n => $"{n}"));
-            var valueslist = string.Join(",", (from dataType in data select $"'{dataType.Value}'").ToList());
-            var updateList = string.Join(",", (from dataType in data select $"{Sanitize(dataType.Key)} = '{dataType.Value}'").ToList());
-
-            builder.AppendLine($"INSERT INTO {Sanitize(containerName)} ({fieldList})");
-            builder.AppendLine($"VALUES ({valueslist})");
-            builder.AppendLine($"ON CONFLICT(OriginEntityCode)");
-            builder.AppendLine($"DO");
-            builder.AppendLine($"  UPDATE SET {updateList}");
-
-            param = (from dataType in data let name = Sanitize(dataType.Key) select new NpgsqlParameter { ParameterName = $"@{name}", Value = dataType.Value ?? ""}).ToList();
-            return builder.ToString();
-        }
-
-        public override async Task ArchiveContainer(ExecutionContext executionContext, Guid providerDefinitionId, string id)
-        {
-            try
-            {
-                var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
-
-                var newName = await GetValidContainerName(executionContext, providerDefinitionId, $"{id}{DateTime.Now:yyyyMMddHHmmss}");
-                var sql = BuildRenameContainerSql(id, newName, out var param);
-
-                _logger.LogDebug($"PostgreSql Server Connector - Archive Container - Generated query: {sql}");
-
-                await _client.ExecuteCommandAsync(config, sql, param);
-            }
-            catch (Exception e)
-            {
-                var message = $"Could not archive Container {id}";
-                _logger.LogError(e, message);
-
-                throw new EmptyContainerException(message);
-            }
-        }
-
-        private string BuildRenameContainerSql(string id, string newName, out List<NpgsqlParameter> param)
-        {
-            var result = $"ALTER TABLE IF EXISTS {Sanitize(id)} RENAME TO {Sanitize(newName)}";
-
-            param = new List<NpgsqlParameter>
-            {
-                new NpgsqlParameter("@tableName", SqlDbType.NVarChar)
-                {
-                    Value = Sanitize(id)
-                },
-                new NpgsqlParameter("@newName", SqlDbType.NVarChar)
-                {
-                    Value = Sanitize(newName)
-                }
-            };
-
-            return result;
-        }
-
-        private string BuildRemoveContainerSql(string id)
-        {
-            var result = $"DROP TABLE  IF EXISTS {Sanitize(id)}";
-            return result;
-        }
-
-        public override async Task RenameContainer(ExecutionContext executionContext, Guid providerDefinitionId, string id, string newName)
-        {
-            try
-            {
-                var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
-
-                var tempName = Sanitize(newName);
-
-                var sql = BuildRenameContainerSql(id, tempName, out var param);
-
-                _logger.LogDebug($"Sql Server Connector - Rename Container - Generated query: {sql}");
-
-                await _client.ExecuteCommandAsync(config, sql, param);
-            }
-            catch (Exception e)
-            {
-                var message = $"Could not rename Container {id}";
-                _logger.LogError(e, message);
-
-                throw new EmptyContainerException(message);
-            }
-        }
-
-        public override async Task RemoveContainer(ExecutionContext executionContext, Guid providerDefinitionId, string id)
-        {
-            try
-            {
-                var config = await base.GetAuthenticationDetails(executionContext, providerDefinitionId);
-
                 var sql = BuildRemoveContainerSql(id);
 
                 _logger.LogDebug($"PostgreSql Server Connector - Remove Container - Generated query: {sql}");
@@ -403,14 +319,85 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             {
                 var message = $"Could not remove Container {id}";
                 _logger.LogError(e, message);
-
                 throw new EmptyContainerException(message);
             }
         }
 
-        public override Task StoreEdgeData(ExecutionContext executionContext, Guid providerDefinitionId, string containerName, string originEntityCode, IEnumerable<string> edges)
+        public override Task StoreEdgeData(ExecutionContext executionContext, Guid providerDefinitionId,
+            string containerName, string originEntityCode, IEnumerable<string> edges)
         {
-            throw new NotImplementedException();
+            return StoreEdgeData(executionContext, providerDefinitionId, containerName, originEntityCode, null,
+                DateTimeOffset.Now, VersionChangeType.NotSet, edges);
+        }
+
+        protected override async Task<IDbConnection> GetDbConnection(IDictionary<string, object> config)
+        {
+            return await _client.GetConnection(config);
+        }
+
+        public async Task CheckDbSchemaAsync(IDictionary<string, object> config)
+        {
+            var schemaName = config.TryGetValue("schema", out var schema)
+                ? schema.ToString()
+                : PostgreSqlServerConstants.DefaultPgSQLSchema;
+
+            await using var connection = await _client.GetConnection(config);
+            var cmdDb =
+                new NpgsqlCommand(
+                    "SELECT schema_name FROM information_schema.schemata WHERE schema_name = @schemaName",
+                    connection);
+
+            cmdDb.Parameters.AddWithValue("schemaName", schemaName);
+
+            var reader = cmdDb.ExecuteReader();
+
+            if (!reader.HasRows)
+                await CreateSchemaAsync(config, schemaName);
+        }
+
+        public async Task CreateSchemaAsync(IDictionary<string, object> config, string schemaName)
+        {
+            await using var connection = await _client.GetConnection(config);
+            var sqlQuery = $"CREATE SCHEMA IF NOT EXISTS \"{schemaName.SqlSanitize()}\"";
+            var cmdDb = new NpgsqlCommand(sqlQuery, connection);
+            cmdDb.ExecuteNonQuery();
+        }
+
+        public string BuildEdgeStoreDataSql(string containerName, string originEntityCode, string correlationId,
+            IEnumerable<string> edges, out List<NpgsqlParameter> param)
+        {
+            var originParam = new NpgsqlParameter { ParameterName = "OriginEntityCode", Value = originEntityCode };
+            var correlationParam = new NpgsqlParameter { ParameterName = "CorrelationId", Value = correlationId };
+            param = new List<NpgsqlParameter> { originParam, correlationParam };
+
+            var builder = new StringBuilder();
+
+            if (StreamMode == StreamMode.Sync)
+                builder.AppendLine(
+                    $"DELETE FROM {containerName.SqlSanitize()} where OriginEntityCode = @{originParam.ParameterName}");
+
+            var edgeValues = new List<string>();
+            foreach (var edge in edges)
+            {
+                var edgeParam = new NpgsqlParameter { ParameterName = $"{edgeValues.Count}", Value = edge };
+                param.Add(edgeParam);
+
+                edgeValues.Add(StreamMode == StreamMode.EventStream
+                    ? $"(@OriginEntityCode, @CorrelationId, @{edgeParam.ParameterName})"
+                    : $"(@OriginEntityCode, @{edgeParam.ParameterName})");
+            }
+
+            if (edgeValues.Count <= 0)
+                return builder.ToString();
+
+            builder.AppendLine(
+                StreamMode == StreamMode.EventStream
+                    ? $"INSERT INTO {containerName.SqlSanitize()} (OriginEntityCode,CorrelationId,Code) values"
+                    : $"INSERT INTO {containerName.SqlSanitize()} (OriginEntityCode,Code) values");
+
+            builder.AppendJoin(", ", edgeValues);
+
+            return builder.ToString();
         }
     }
 }

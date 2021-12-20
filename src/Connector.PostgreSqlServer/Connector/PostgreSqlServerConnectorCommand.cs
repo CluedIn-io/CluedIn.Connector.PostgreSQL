@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace CluedIn.Connector.PostgreSqlServer.Connector
 {
-    public interface IPostgreSqlClient : IClientBase<NpgsqlConnection, NpgsqlParameter>
+    public class PostgreSqlConnectorCommand : CommonConnectorCommandBase<NpgsqlParameter>
     {
     }
 }

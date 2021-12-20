@@ -6,7 +6,7 @@
     <_MicrosoftExtensions>3.1.5</_MicrosoftExtensions>
     <_ComponentHost>2.0.0-*</_ComponentHost>
     <_AutoFixture>4.11.0</_AutoFixture>
-    <_CluedIn>3.2.2-*</_CluedIn>
+    <_CluedIn>3.2.5-*</_CluedIn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,7 +26,7 @@
     <PackageReference Update="Xunit.SkippableFact" Version="1.3.12" />
     <PackageReference Update="Moq" Version="4.13.1" />
     <PackageReference Update="Shouldly" Version="3.0.2" />
-    <PackageReference Update="Npgsql" Version="5.0.4"  />
+    <PackageReference Update="Npgsql" Version="5.0.11"  />
     <PackageReference Update="Microsoft.EntityFrameworkCore" version="$(_EntityFramework)" />
     <PackageReference Update="Microsoft.EntityFrameworkCore.InMemory" version="$(_EntityFramework)" />
   </ItemGroup>
@@ -45,8 +45,6 @@
     <PackageReference Update="CluedIn.CrawlerIntegrationTesting" Version="$(_CluedIn)" />
     <PackageReference Update="CluedIn.DataStore" Version="$(_CluedIn)" />
     <PackageReference Update="RestSharp" Version="106.10.1" />
-    <PackageReference Update="Dapper" Version="2.0.35" />
-    <PackageReference Update="Dapper.SqlBuilder" Version="2.0.35" />
 
   </ItemGroup>
 
