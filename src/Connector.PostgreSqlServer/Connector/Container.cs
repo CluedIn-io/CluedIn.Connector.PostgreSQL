@@ -1,7 +1,7 @@
 ﻿using CluedIn.Core.Connectors;
 using CluedIn.Core.Data.Vocabularies;
 using CluedIn.Core.Streams.Models;
-using Connector.Common;
+using CluedIn.Connector.Common;
 using System.Collections.Generic;
 using System.Linq;
 

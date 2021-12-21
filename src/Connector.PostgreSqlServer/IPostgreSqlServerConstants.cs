@@ -1,4 +1,4 @@
-﻿using Connector.Common;
+﻿using CluedIn.Connector.Common;
 
 namespace CluedIn.Connector.PostgreSqlServer
 {

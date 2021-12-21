@@ -1,6 +1,7 @@
 using CluedIn.Core.Providers;
-using Connector.Common;
+using CluedIn.Connector.Common;
 using System;
+using Npgsql;
 
 // ReSharper disable ArgumentsStyleStringLiteral
 
@@ -8,7 +9,7 @@ namespace CluedIn.Connector.PostgreSqlServer
 {
     public class PostgreSqlServerConstants : ConfigurationConstantsBase, IPostgreSqlServerConstants
     {
-        public const int DefaultPgSQLPort = 5432;
+        public const int DefaultPgSQLPort = 5432; //NpgsqlConnection.DefaultPort
         public const string DefaultPgSQLSchema = "cluedin";
 
         public PostgreSqlServerConstants() : base(Guid.Parse("838E4EA2-80E0-4D60-B1D1-F052BFCD0CAF"),

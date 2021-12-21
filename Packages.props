@@ -7,6 +7,7 @@
     <_ComponentHost>2.0.0-*</_ComponentHost>
     <_AutoFixture>4.11.0</_AutoFixture>
     <_CluedIn>3.2.5-*</_CluedIn>
+    <_ConnectorCommon>1.0.0-*</_ConnectorCommon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,7 +46,7 @@
     <PackageReference Update="CluedIn.CrawlerIntegrationTesting" Version="$(_CluedIn)" />
     <PackageReference Update="CluedIn.DataStore" Version="$(_CluedIn)" />
     <PackageReference Update="RestSharp" Version="106.10.1" />
-
+    <PackageReference Update="CluedIn.CluedIn.Connector.Common" Version="$(_ConnectorCommon)" />
   </ItemGroup>
 
   <ItemGroup Label="Global tools">

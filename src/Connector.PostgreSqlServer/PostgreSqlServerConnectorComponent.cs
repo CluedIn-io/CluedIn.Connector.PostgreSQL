@@ -1,7 +1,7 @@
 using CluedIn.Core;
 using CluedIn.Core.Server;
 using ComponentHost;
-using Connector.Common;
+using CluedIn.Connector.Common;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 

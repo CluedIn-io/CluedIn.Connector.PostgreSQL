@@ -1,7 +1,7 @@
 ﻿using CluedIn.Connector.PostgreSqlServer.Connector;
 using CluedIn.Core;
 using CluedIn.Core.Data;
-using Connector.Common;
+using CluedIn.Connector.Common;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;

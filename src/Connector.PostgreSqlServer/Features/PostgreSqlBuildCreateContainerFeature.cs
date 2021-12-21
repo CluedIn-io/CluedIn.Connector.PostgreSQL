@@ -1,7 +1,7 @@
 ﻿using CluedIn.Connector.PostgreSqlServer.Connector;
 using CluedIn.Core.Connectors;
 using CluedIn.Core.Streams.Models;
-using Connector.Common;
+using CluedIn.Connector.Common;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;

@@ -17,12 +17,8 @@
     <EmbeddedResource Include="Resources\sqlserver.png" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CluedIn.CluedIn.Connector.Common" Version="1.0.0-alpha.7" />
     <PackageReference Include="CluedIn.Core" Version="3.2.5" />
     <PackageReference Include="Npgsql" Version="5.0.11" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Connector.Common">
-      <HintPath>..\..\..\CluedIn.Connector.Matrix\Connector.Common\bin\Debug\netcoreapp3.1\Connector.Common.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>

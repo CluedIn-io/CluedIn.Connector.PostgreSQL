@@ -5,7 +5,7 @@ using CluedIn.Core.Connectors;
 using CluedIn.Core.Data.Vocabularies;
 using Xunit;
 
-namespace CluedIn.Connector.SqlServer.Unit.Tests
+namespace CluedIn.Connector.PostgreSqlServer.Unit.Tests
 {
     //public class SqlGenerationTests : SqlServerConnectorTestsBase
     //{

@@ -1,5 +1,5 @@
 using CluedIn.Core;
-using Connector.Common;
+using CluedIn.Connector.Common;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 
