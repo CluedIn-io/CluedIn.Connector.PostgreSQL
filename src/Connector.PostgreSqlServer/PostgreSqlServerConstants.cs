@@ -3,8 +3,6 @@ using CluedIn.Connector.Common;
 using System;
 using Npgsql;
 
-// ReSharper disable ArgumentsStyleStringLiteral
-
 namespace CluedIn.Connector.PostgreSqlServer
 {
     public class PostgreSqlServerConstants : ConfigurationConstantsBase, IPostgreSqlServerConstants

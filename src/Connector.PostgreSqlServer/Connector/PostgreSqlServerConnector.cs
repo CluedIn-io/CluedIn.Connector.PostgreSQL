@@ -336,7 +336,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
         public async Task CheckDbSchemaAsync(IDictionary<string, object> config)
         {
-            var schemaName = config.TryGetValue("schema", out var schema)
+            var schemaName = config.TryGetValue(CommonConfigurationNames.Schema, out var schema)
                 ? schema.ToString()
                 : PostgreSqlServerConstants.DefaultPgSQLSchema;
 
@@ -373,7 +373,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
             if (StreamMode == StreamMode.Sync)
                 builder.AppendLine(
-                    $"DELETE FROM {containerName.SqlSanitize()} where OriginEntityCode = @{originParam.ParameterName}");
+                    $"DELETE FROM {containerName.SqlSanitize()} WHERE OriginEntityCode = @{originParam.ParameterName}; ");
 
             var edgeValues = new List<string>();
             foreach (var edge in edges)
@@ -391,8 +391,8 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
             builder.AppendLine(
                 StreamMode == StreamMode.EventStream
-                    ? $"INSERT INTO {containerName.SqlSanitize()} (OriginEntityCode,CorrelationId,Code) values"
-                    : $"INSERT INTO {containerName.SqlSanitize()} (OriginEntityCode,Code) values");
+                    ? $"INSERT INTO {containerName.SqlSanitize()} (OriginEntityCode,CorrelationId,Code) VALUES"
+                    : $"INSERT INTO {containerName.SqlSanitize()} (OriginEntityCode,Code) VALUES");
 
             builder.AppendJoin(", ", edgeValues);
 
