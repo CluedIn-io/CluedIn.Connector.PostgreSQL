@@ -6,7 +6,7 @@
     <IsCluedInServerComponent>true</IsCluedInServerComponent>
     <PackageId>CluedIn.Connector.PostgreSqlServer</PackageId>
     <Title>CluedIn.Connector.PostgreSqlServer</Title>
-    <Version>3.3.2</Version>
+    <Version>3.2.5</Version>
     <Copyright>Copyright (c) 2021 CluedIn ApS. All rights reserved.</Copyright>
     <PackageProjectUrl>https://cluedin.com</PackageProjectUrl>
   </PropertyGroup>
