@@ -1,4 +1,4 @@
-﻿using CluedIn.Connector.PostgreSqlServer.Features;
+using CluedIn.Connector.PostgreSqlServer.Features;
 using CluedIn.Core;
 using CluedIn.Core.Connectors;
 using CluedIn.Core.Data.Parts;
