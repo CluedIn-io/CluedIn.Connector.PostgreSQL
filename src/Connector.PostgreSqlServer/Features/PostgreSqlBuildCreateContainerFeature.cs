@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CluedIn.Connector.Common.Helpers;
+using System;
 
 namespace CluedIn.Connector.PostgreSqlServer.Features
 {
@@ -19,6 +20,13 @@ namespace CluedIn.Connector.PostgreSqlServer.Features
             StreamMode streamMode,
             ILogger logger)
         {
+
+            if (string.IsNullOrWhiteSpace(tableName))
+                throw new InvalidOperationException("The tableName must be provided.");
+
+            if (columns == null)
+                throw new InvalidOperationException("The data to specify columns must be provided.");
+
             var builder = new StringBuilder();
 
             var trimmedColumns = columns.Where(x => x.Name != "Codes").ToList();
@@ -41,7 +49,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Features
 
             builder.AppendLine(");");
 
-            return new[] {new PostgreSqlConnectorCommand {Text = builder.ToString()}};
+            return new[] { new PostgreSqlConnectorCommand { Text = builder.ToString() } };
         }
     }
 }
