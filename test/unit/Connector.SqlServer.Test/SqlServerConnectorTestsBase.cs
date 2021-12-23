@@ -1,4 +1,3 @@
-using CluedIn.Connector.Common;
 using CluedIn.Connector.PostgreSqlServer.Connector;
 using CluedIn.Core.DataStore;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Unit.Tests
         public PostgreSqlServerConnectorTestsBase()
         {
 
-            Sut = new PostgreSqlServerConnector(Repo.Object, Logger.Object, Client.Object, new CommonServiceHolder(),new PostgreSqlServerConstants());
+            Sut = new PostgreSqlServerConnector(Repo.Object, Logger.Object, Client.Object, new PostgreSqlServerConstants());
         }
     }
 }

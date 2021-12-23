@@ -1,7 +1,7 @@
-﻿using CluedIn.Connector.PostgreSqlServer.Connector;
+﻿using CluedIn.Connector.Common.Helpers;
+using CluedIn.Connector.PostgreSqlServer.Connector;
 using CluedIn.Core;
 using CluedIn.Core.Data;
-using CluedIn.Connector.Common;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
@@ -48,13 +48,13 @@ namespace CluedIn.Connector.PostgreSqlServer.Features
         protected virtual IEnumerable<PostgreSqlConnectorCommand> ComposeDelete(string tableName,
             IDictionary<string, object> fields)
         {
-            var sqlBuilder = new StringBuilder($"DELETE FROM {tableName.SqlSanitize()} WHERE ");
+            var sqlBuilder = new StringBuilder($"DELETE FROM {SqlStringSanitizer.Sanitize(tableName)} WHERE ");
             var clauses = new List<string>();
             var parameters = new List<NpgsqlParameter>();
 
             foreach (var entry in fields)
             {
-                var key = entry.Key.SqlSanitize();
+                var key = SqlStringSanitizer.Sanitize(entry.Key);
                 clauses.Add($"{key} = @{key}");
                 parameters.Add(new NpgsqlParameter(key, entry.Value));
             }

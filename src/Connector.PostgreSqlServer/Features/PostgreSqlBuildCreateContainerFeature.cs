@@ -1,11 +1,11 @@
 ﻿using CluedIn.Connector.PostgreSqlServer.Connector;
 using CluedIn.Core.Connectors;
 using CluedIn.Core.Streams.Models;
-using CluedIn.Connector.Common;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CluedIn.Connector.Common.Helpers;
 
 namespace CluedIn.Connector.PostgreSqlServer.Features
 {
@@ -23,7 +23,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Features
 
             var trimmedColumns = columns.Where(x => x.Name != "Codes").ToList();
 
-            builder.AppendLine($"CREATE TABLE IF NOT EXISTS {tableName.SqlSanitize()}(");
+            builder.AppendLine($"CREATE TABLE IF NOT EXISTS {SqlStringSanitizer.Sanitize(tableName)}(");
 
             var index = 0;
 
@@ -31,7 +31,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Features
 
             foreach (var column in trimmedColumns)
             {
-                builder.AppendLine($"{column.Name.SqlSanitize()} text NULL " +
+                builder.AppendLine($"{SqlStringSanitizer.Sanitize(column.Name)} text NULL " +
 
                                    // TODO: appoint PK to valid column for StreamMode Event
                                    $"{(column.Name.ToLower().Equals("originentitycode") && context == "Data" && streamMode == StreamMode.Sync ? "PRIMARY KEY" : "")}" +

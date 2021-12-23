@@ -1,4 +1,5 @@
-using CluedIn.Connector.Common;
+using CluedIn.Connector.Common.Clients;
+using CluedIn.Connector.Common.Configurations;
 using Npgsql;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             connectionStringBuilder.Port = config.TryGetValue(CommonConfigurationNames.PortNumber, out var portEntry) &&
                                            portEntry != null && portEntry is int port
                 ? port
-                : PostgreSqlServerConstants.DefaultPgSQLPort;
+                : NpgsqlConnection.DefaultPort;
 
             if (config.TryGetValue(CommonConfigurationNames.Schema, out var schemaNameEntry)
                 && schemaNameEntry is string schemaName && !string.IsNullOrWhiteSpace(schemaName))
@@ -29,7 +30,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
                 connectionStringBuilder.SearchPath = PostgreSqlServerConstants.DefaultPgSQLSchema;
 
             connectionStringBuilder.SslMode =
-                config.TryGetValue(CommonConfigurationNames.SSLMode, out var SSLModeEntry) && SSLModeEntry != null
+                config.TryGetValue(PostgreSqlServerConstants.SSLMode, out var SSLModeEntry) && SSLModeEntry != null
                     ? (SslMode)Enum.Parse(typeof(SslMode), SSLModeEntry.ToString())
                     : SslMode.Require;
 

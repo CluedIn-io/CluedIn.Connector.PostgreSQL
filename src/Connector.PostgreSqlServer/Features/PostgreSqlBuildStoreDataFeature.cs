@@ -1,6 +1,5 @@
 ﻿using CluedIn.Connector.PostgreSqlServer.Connector;
 using CluedIn.Core.Streams.Models;
-using CluedIn.Connector.Common;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
@@ -8,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CluedIn.Connector.Common.Helpers;
 
 namespace CluedIn.Connector.PostgreSqlServer.Features
 {
@@ -78,13 +78,13 @@ namespace CluedIn.Connector.PostgreSqlServer.Features
 
         protected virtual PostgreSqlConnectorCommand ComposeDelete(string tableName, IDictionary<string, object> fields)
         {
-            var sqlBuilder = new StringBuilder($"DELETE FROM {tableName.SqlSanitize()} WHERE ");
+            var sqlBuilder = new StringBuilder($"DELETE FROM {SqlStringSanitizer.Sanitize(tableName)} WHERE ");
             var clauses = new List<string>();
             var parameters = new List<NpgsqlParameter>();
 
             foreach (var entry in fields)
             {
-                var key = entry.Key.SqlSanitize();
+                var key = SqlStringSanitizer.Sanitize(entry.Key);
                 clauses.Add($"{key} = @{key}");
                 parameters.Add(new NpgsqlParameter($"{key}", entry.Value));
             }
@@ -102,26 +102,29 @@ namespace CluedIn.Connector.PostgreSqlServer.Features
             var parameters = new List<NpgsqlParameter>();
 
             var updateList = string.Join(",",
-                (from dataType in fields select $"{dataType.Key.SqlSanitize()} = @{dataType.Key}").ToList());
+                (from dataType in fields select $"{SqlStringSanitizer.Sanitize(dataType.Key)} = @{dataType.Key}").ToList());
 
             foreach (var entry in fields)
             {
-                columns.Add($"{entry.Key.SqlSanitize()}");
-                parameters.Add(new NpgsqlParameter($"{entry.Key.SqlSanitize()}", entry.Value));
+                columns.Add($"{SqlStringSanitizer.Sanitize(entry.Key)}");
+                parameters.Add(new NpgsqlParameter($"{SqlStringSanitizer.Sanitize(entry.Key)}", entry.Value));
             }
 
-            var sqlBuilder = new StringBuilder($"INSERT INTO {tableName.SqlSanitize()} (");
+            var sqlBuilder = new StringBuilder($"INSERT INTO {SqlStringSanitizer.Sanitize(tableName)} (");
             sqlBuilder.AppendJoin(",", columns);
             sqlBuilder.Append(") VALUES (");
             sqlBuilder.AppendJoin(",", parameters.Select(x => $"@{x.ParameterName}"));
             sqlBuilder.Append(")");
 
             if (context != "Data" || streamMode != StreamMode.Sync)
-                return new PostgreSqlConnectorCommand {Text = sqlBuilder.ToString(), Parameters = parameters};
+            {
+                sqlBuilder.Append(";");
+                return new PostgreSqlConnectorCommand { Text = sqlBuilder.ToString(), Parameters = parameters };
+            }
 
             sqlBuilder.AppendLine(" ON CONFLICT(OriginEntityCode)");
             sqlBuilder.AppendLine(" DO");
-            sqlBuilder.AppendLine($" UPDATE SET {updateList}");
+            sqlBuilder.AppendLine($" UPDATE SET {updateList};");
 
             return new PostgreSqlConnectorCommand {Text = sqlBuilder.ToString(), Parameters = parameters};
         }

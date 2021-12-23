@@ -1,14 +1,13 @@
+using CluedIn.Connector.Common.Configurations;
 using CluedIn.Core.Providers;
-using CluedIn.Connector.Common;
 using System;
-using Npgsql;
 
 namespace CluedIn.Connector.PostgreSqlServer
 {
     public class PostgreSqlServerConstants : ConfigurationConstantsBase, IPostgreSqlServerConstants
     {
-        public const int DefaultPgSQLPort = 5432; //NpgsqlConnection.DefaultPort
         public const string DefaultPgSQLSchema = "cluedin";
+        public const string SSLMode = nameof(SSLMode);
 
         public PostgreSqlServerConstants() : base(Guid.Parse("838E4EA2-80E0-4D60-B1D1-F052BFCD0CAF"),
             providerName: "PostgreSql Server Connector",
@@ -69,7 +68,7 @@ namespace CluedIn.Connector.PostgreSqlServer
                 },
                 new Control
                 {
-                    name = CommonConfigurationNames.SSLMode,
+                    name = SSLMode,
                     displayName = "SSLMode (default: Require)",
                     type = "Input",
                     isRequired = false
