@@ -10,22 +10,16 @@ using CluedIn.Core.Data;
 using CluedIn.Core.Data.Relational;
 using CluedIn.Core.DataStore;
 using CluedIn.Core.DataStore.Entities;
-using CluedIn.Core.Messages.Processing;
-using CluedIn.Core.Net.Mail;
-using CluedIn.Core.Processing;
-using CluedIn.Core.Processing.Statistics;
-using CluedIn.Core.Rules;
 using CluedIn.Core.Server;
 using CluedIn.Core.Workflows;
 using CluedIn.DataStore.Relational;
-using CluedIn.ExternalSearch;
 using EasyNetQ;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
-namespace CluedIn.Connector.SqlServer.Unit.Tests
+namespace CluedIn.Connector.PostgreSqlServer.Unit.Tests
 {
     public class TestContext : IDisposable
     {

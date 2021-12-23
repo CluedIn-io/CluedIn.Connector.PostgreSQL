@@ -50,7 +50,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Git", "Git", "{17EE3C8D-BAE
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connector.PostgreSqlServer", "src\Connector.PostgreSqlServer\Connector.PostgreSqlServer.csproj", "{ED656EF9-9D15-45CA-B505-AF48AD8D0145}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connector.SqlServer.Unit.Tests", "test\unit\Connector.SqlServer.Test\Connector.SqlServer.Unit.Tests.csproj", "{5F2D36E4-2B4A-47EF-B4FC-703FFBB074E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connector.PostgreSqlServer.Unit.Tests", "test\unit\Connector.SqlServer.Test\Connector.PostgreSqlServer.Unit.Tests.csproj", "{5F2D36E4-2B4A-47EF-B4FC-703FFBB074E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connector.PostgresSqlServer.Integration.Tests", "test\integration\Connector.PostgresSqlServer.Integration.Tests\Connector.PostgresSqlServer.Integration.Tests.csproj", "{D855F178-C202-4522-96F8-DD2E75684A3A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,6 +68,10 @@ Global
 		{5F2D36E4-2B4A-47EF-B4FC-703FFBB074E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5F2D36E4-2B4A-47EF-B4FC-703FFBB074E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5F2D36E4-2B4A-47EF-B4FC-703FFBB074E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D855F178-C202-4522-96F8-DD2E75684A3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D855F178-C202-4522-96F8-DD2E75684A3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D855F178-C202-4522-96F8-DD2E75684A3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D855F178-C202-4522-96F8-DD2E75684A3A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,6 +86,7 @@ Global
 		{17EE3C8D-BAE4-481A-B9CC-1BE878E86124} = {9BD54E81-D9C8-4419-82B8-8EE6CC7E2647}
 		{ED656EF9-9D15-45CA-B505-AF48AD8D0145} = {B2A52533-7FBF-41FE-A0AF-874FC54300B2}
 		{5F2D36E4-2B4A-47EF-B4FC-703FFBB074E4} = {A32B6852-82C7-4107-8C68-AE9232289E09}
+		{D855F178-C202-4522-96F8-DD2E75684A3A} = {DBD1964B-DBD9-4C70-96CA-391C34B3D75F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6A61CB42-80C5-4A83-AC3E-DA41FC875525}
