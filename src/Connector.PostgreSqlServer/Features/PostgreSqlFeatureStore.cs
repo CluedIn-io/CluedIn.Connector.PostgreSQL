@@ -1,4 +1,4 @@
-﻿using CluedIn.Connector.Common;
+﻿using CluedIn.Connector.Common.Features;
 using System;
 using System.Collections.Concurrent;
 

@@ -1,3 +1,7 @@
+using CluedIn.Connector.Common.Configurations;
+using CluedIn.Connector.Common.Connectors;
+using CluedIn.Connector.Common.Features;
+using CluedIn.Connector.Common.Helpers;
 using CluedIn.Connector.PostgreSqlServer.Features;
 using CluedIn.Core;
 using CluedIn.Core.Connectors;
@@ -5,19 +9,17 @@ using CluedIn.Core.Data.Parts;
 using CluedIn.Core.Data.Vocabularies;
 using CluedIn.Core.DataStore;
 using CluedIn.Core.Streams.Models;
-using CluedIn.Connector.Common;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace CluedIn.Connector.PostgreSqlServer.Connector
 {
-    public class PostgreSqlServerConnector : SqlConnectorBase<PostgreSqlServerConnector, IPostgreSqlClient>,
+    public class PostgreSqlServerConnector : SqlConnectorBase<PostgreSqlServerConnector, NpgsqlConnection, NpgsqlParameter>,
         IConnectorStreamModeSupport
     {
         private const string TimestampFieldName = "TimeStamp";
@@ -27,9 +29,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
         private readonly IFeatureStore _features;
 
         public PostgreSqlServerConnector(IConfigurationRepository repository, ILogger<PostgreSqlServerConnector> logger,
-            IPostgreSqlClient client,
-            ICommonServiceHolder serviceHolder, IPostgreSqlServerConstants constants) : base(repository, logger, client,
-            serviceHolder, constants.ProviderId)
+            IPostgreSqlClient client, IPostgreSqlServerConstants constants) : base(repository, logger, client, constants.ProviderId)
         {
             _features = new PostgreSqlFeatureStore();
         }
@@ -97,7 +97,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
         {
             try
             {
-                var edgeTableName = $"{containerName.SqlSanitize()}Edges".ToLowerInvariant();
+                var edgeTableName = $"{SqlStringSanitizer.Sanitize(containerName)}Edges".ToLowerInvariant();
                 if (await CheckTableExists(executionContext, providerDefinitionId, edgeTableName))
                 {
                     var sql = BuildEdgeStoreDataSql(edgeTableName, originEntityCode, correlationId, edges,
@@ -220,20 +220,6 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
             }
         }
 
-        public override async Task<string> GetValidContainerName(ExecutionContext executionContext,
-            Guid providerDefinitionId, string name)
-        {
-            return await _commonServiceHolder.GetValidContainerName(executionContext, providerDefinitionId, name,
-                CheckTableExists);
-        }
-
-        private async Task<bool> CheckTableExists(ExecutionContext executionContext, Guid providerDefinitionId,
-            string name)
-        {
-            return await _commonServiceHolder.CheckTableExists(executionContext, providerDefinitionId, name, _client,
-                this, _logger);
-        }
-
         public override Task StoreData(ExecutionContext executionContext, Guid providerDefinitionId,
             string containerName, IDictionary<string, object> data)
         {
@@ -270,12 +256,12 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
         private string BuildRenameContainerSql(string oldTableName, string newTableName)
         {
-            return $"ALTER TABLE IF EXISTS {oldTableName.SqlSanitize()} RENAME TO {newTableName.SqlSanitize()}";
+            return $"ALTER TABLE IF EXISTS {SqlStringSanitizer.Sanitize(oldTableName)} RENAME TO {SqlStringSanitizer.Sanitize(newTableName)};";
         }
 
         private string BuildRemoveContainerSql(string tableName)
         {
-            return $"DROP TABLE  IF EXISTS {tableName.SqlSanitize()}";
+            return $"DROP TABLE  IF EXISTS {SqlStringSanitizer.Sanitize(tableName)};";
         }
 
         public override Task RenameContainer(ExecutionContext executionContext, Guid providerDefinitionId, string id,
@@ -329,11 +315,6 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
                 DateTimeOffset.Now, VersionChangeType.NotSet, edges);
         }
 
-        protected override async Task<IDbConnection> GetDbConnection(IDictionary<string, object> config)
-        {
-            return await _client.GetConnection(config);
-        }
-
         public async Task CheckDbSchemaAsync(IDictionary<string, object> config)
         {
             var schemaName = config.TryGetValue(CommonConfigurationNames.Schema, out var schema)
@@ -357,7 +338,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
         public async Task CreateSchemaAsync(IDictionary<string, object> config, string schemaName)
         {
             await using var connection = await _client.GetConnection(config);
-            var sqlQuery = $"CREATE SCHEMA IF NOT EXISTS \"{schemaName.SqlSanitize()}\"";
+            var sqlQuery = $"CREATE SCHEMA IF NOT EXISTS \"{SqlStringSanitizer.Sanitize(schemaName)}\"";
             var cmdDb = new NpgsqlCommand(sqlQuery, connection);
             cmdDb.ExecuteNonQuery();
         }
@@ -373,7 +354,7 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
             if (StreamMode == StreamMode.Sync)
                 builder.AppendLine(
-                    $"DELETE FROM {containerName.SqlSanitize()} WHERE OriginEntityCode = @{originParam.ParameterName}; ");
+                    $"DELETE FROM {SqlStringSanitizer.Sanitize(containerName)} WHERE OriginEntityCode = @{originParam.ParameterName}; ");
 
             var edgeValues = new List<string>();
             foreach (var edge in edges)
@@ -391,10 +372,11 @@ namespace CluedIn.Connector.PostgreSqlServer.Connector
 
             builder.AppendLine(
                 StreamMode == StreamMode.EventStream
-                    ? $"INSERT INTO {containerName.SqlSanitize()} (OriginEntityCode,CorrelationId,Code) VALUES"
-                    : $"INSERT INTO {containerName.SqlSanitize()} (OriginEntityCode,Code) VALUES");
+                    ? $"INSERT INTO {SqlStringSanitizer.Sanitize(containerName)} (OriginEntityCode,CorrelationId,Code) VALUES"
+                    : $"INSERT INTO {SqlStringSanitizer.Sanitize(containerName)} (OriginEntityCode,Code) VALUES");
 
             builder.AppendJoin(", ", edgeValues);
+            builder.Append(";");
 
             return builder.ToString();
         }

@@ -9,7 +9,7 @@ using Xunit;
 using ExecutionContext = CluedIn.Core.ExecutionContext;
 using CluedIn.Connector.PostgreSqlServer.Connector;
 using Xunit.Abstractions;
-using CluedIn.Connector.Common;
+using CluedIn.Connector.Common.Configurations;
 
 namespace Cluedin.Connector.PostgresSqlServer.Integration.Tests
 {
@@ -55,7 +55,7 @@ namespace Cluedin.Connector.PostgresSqlServer.Integration.Tests
             var PgSqlClient = new PostgreSqlClient();
             var executionContext = Mock.Of<ExecutionContext>();
             var providerDefinitionId = Guid.NewGuid();
-            var pgsqlServerConnector = new PostgreSqlServerConnector(configurationRepositoryMock.Object, logger, PgSqlClient, new CommonServiceHolder(), new PostgreSqlServerConstants());
+            var pgsqlServerConnector = new PostgreSqlServerConnector(configurationRepositoryMock.Object, logger, PgSqlClient, new PostgreSqlServerConstants());
             var isConnectionOk = await pgsqlServerConnector.VerifyConnection(executionContext, configCon);
             return Task.CompletedTask;
         }
@@ -93,7 +93,7 @@ namespace Cluedin.Connector.PostgresSqlServer.Integration.Tests
             var PgSqlClient = new PostgreSqlClient();
             var executionContext = Mock.Of<ExecutionContext>();
             var providerDefinitionId = Guid.NewGuid();
-            var pgsqlServerConnector = new PostgreSqlServerConnector(configurationRepositoryMock.Object, logger, PgSqlClient, new CommonServiceHolder(), new PostgreSqlServerConstants());
+            var pgsqlServerConnector = new PostgreSqlServerConnector(configurationRepositoryMock.Object, logger, PgSqlClient, new PostgreSqlServerConstants());
             await pgsqlServerConnector.CheckDbSchemaAsync(configCon);
             //var isConnectionOk = await sqlServerConnector.SchemaTestAsync(configCon,"0cluedin");
             //this.OutputHelper.WriteLine("Result:");
