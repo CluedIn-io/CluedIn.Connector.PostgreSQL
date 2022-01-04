@@ -60,7 +60,7 @@ namespace Cluedin.Connector.PostgresSqlServer.Integration.Tests
             return Task.CompletedTask;
         }
 
-        [Fact]
+        // [Fact]
         public async Task<Task> CheckSchemaTest()
         {
             var configurationRepositoryMock = new Mock<IConfigurationRepository>();
