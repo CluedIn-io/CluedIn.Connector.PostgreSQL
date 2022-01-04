@@ -6,6 +6,8 @@
     <IsCluedInServerComponent>true</IsCluedInServerComponent>
     <PackageId>CluedIn.Connector.PostgreSqlServer</PackageId>
     <Title>CluedIn.Connector.PostgreSqlServer</Title>
+    <Copyright>Copyright (c) 2022 CluedIn ApS. All rights reserved.</Copyright>
+    <PackageProjectUrl>https://cluedin.com</PackageProjectUrl>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Resources\SqlServer.png" />
@@ -14,9 +16,8 @@
     <EmbeddedResource Include="Resources\sqlserver.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CluedIn.Core" />
-    <PackageReference Include="Dapper" />
-    <PackageReference Include="Dapper.SqlBuilder" />
-    <PackageReference Include="Npgsql"  />
+    <PackageReference Include="CluedIn.Connector.Common" Version="3.2.5" />
+    <PackageReference Include="CluedIn.Core" Version="3.2.5" />
+    <PackageReference Include="Npgsql" Version="5.0.11" />
   </ItemGroup>
 </Project>

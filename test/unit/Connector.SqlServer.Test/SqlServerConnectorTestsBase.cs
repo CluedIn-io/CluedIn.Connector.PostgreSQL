@@ -3,9 +3,10 @@ using CluedIn.Core.DataStore;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace CluedIn.Connector.SqlServer.Unit.Tests
+
+namespace CluedIn.Connector.PostgreSqlServer.Unit.Tests
 {
-    public class SqlServerConnectorTestsBase
+    public class PostgreSqlServerConnectorTestsBase
     {
         protected readonly PostgreSqlServerConnector Sut;
         protected readonly Mock<IConfigurationRepository> Repo = new Mock<IConfigurationRepository>();
@@ -13,9 +14,10 @@ namespace CluedIn.Connector.SqlServer.Unit.Tests
         protected readonly Mock<IPostgreSqlClient> Client = new Mock<IPostgreSqlClient>();
         protected readonly TestContext Context = new TestContext();
 
-        public SqlServerConnectorTestsBase()
+        public PostgreSqlServerConnectorTestsBase()
         {
-            Sut = new PostgreSqlServerConnector(Repo.Object, Logger.Object, Client.Object);
+
+            Sut = new PostgreSqlServerConnector(Repo.Object, Logger.Object, Client.Object, new PostgreSqlServerConstants());
         }
     }
 }

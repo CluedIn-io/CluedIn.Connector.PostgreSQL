@@ -2,7 +2,7 @@
 using CluedIn.Core;
 using CluedIn.Core.Accounts;
 
-namespace CluedIn.Connector.SqlServer.Unit.Tests
+namespace CluedIn.Connector.PostgreSqlServer.Unit.Tests
 {
     public class TestOrganization : Organization
     {
