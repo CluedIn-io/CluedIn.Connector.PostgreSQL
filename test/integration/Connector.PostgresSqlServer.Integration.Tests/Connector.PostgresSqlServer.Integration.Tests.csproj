@@ -10,8 +10,6 @@
     <PackageReference Include="AutoFixture.AutoMoq" />
     <PackageReference Include="AutoFixture.Idioms" />
     <PackageReference Include="AutoFixture.Xunit2" />
-    <PackageReference Include="CluedIn.Connector.Common"/>
-    <PackageReference Include="CluedIn.DataStore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

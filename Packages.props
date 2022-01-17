@@ -7,7 +7,7 @@
     <_ComponentHost>2.0.0-*</_ComponentHost>
     <_AutoFixture>4.11.0</_AutoFixture>
     <_CluedIn>3.3.0-ama.*</_CluedIn>
-    <_ConnectorCommon>3.2.5-*</_ConnectorCommon>
+    <_ConnectorCommon>3.3.0-ama.*</_ConnectorCommon>
   </PropertyGroup>
   <ItemGroup>
     <!--
@@ -36,15 +36,8 @@
 
         MUST SPECIFY IN CSPROJ AS <PackageReference Name="<depName>" />
     -->
-    <PackageReference Update="Castle.Windsor" Version="5.0.1" />
-    <PackageReference Update="ComponentHost" Version="$(_ComponentHost)" />
-    <PackageReference Update="CluedIn.Core" Version="$(_CluedIn)" />
-    <PackageReference Update="CluedIn.Core.Agent" Version="$(_CluedIn)" />
-    <PackageReference Update="CluedIn.Crawling" Version="$(_CluedIn)" />
-    <PackageReference Update="CluedIn.CrawlerIntegrationTesting" Version="$(_CluedIn)" />
-    <PackageReference Update="CluedIn.DataStore" Version="$(_CluedIn)" />
-    <PackageReference Update="RestSharp" Version="106.10.1" />
-    <PackageReference Update="CluedIn.Connector.Common" Version="3.3.0-ama.*" />
+    <PackageReference Update="Npgsql" Version="5.0.11" />
+    <PackageReference Update="CluedIn.Connector.Common" Version="$(_ConnectorCommon)" />
   </ItemGroup>
   <ItemGroup Label="Global tools">
     <!--
