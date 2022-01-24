@@ -6,8 +6,8 @@
     <_MicrosoftExtensions>3.1.5</_MicrosoftExtensions>
     <_ComponentHost>2.0.0-*</_ComponentHost>
     <_AutoFixture>4.11.0</_AutoFixture>
-    <_CluedIn>3.2.5-*</_CluedIn>
-    <_ConnectorCommon>3.2.5-*</_ConnectorCommon>
+    <_CluedIn>3.3.0-alpha.*</_CluedIn>
+    <_ConnectorCommon>3.3.0-alpha.*</_ConnectorCommon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,7 +38,6 @@
 
         MUST SPECIFY IN CSPROJ AS <PackageReference Name="<depName>" />
     -->
-    <PackageReference Update="Castle.Windsor" Version="5.0.1" />
     <PackageReference Update="ComponentHost" Version="$(_ComponentHost)" />
     <PackageReference Update="CluedIn.Core" Version="$(_CluedIn)" />
     <PackageReference Update="CluedIn.Core.Agent" Version="$(_CluedIn)" />

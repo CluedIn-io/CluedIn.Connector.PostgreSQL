@@ -4,11 +4,9 @@ using CluedIn.Connector.Common.Features;
 using CluedIn.Connector.Common.Helpers;
 using CluedIn.Connector.PostgreSqlServer.Features;
 using CluedIn.Core;
-using CluedIn.Core.Connectors;
 using CluedIn.Core.Data.Parts;
 using CluedIn.Core.Data.Vocabularies;
 using CluedIn.Core.DataStore;
-using CluedIn.Core.Streams.Models;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
@@ -16,6 +14,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CluedIn.Core.Connectors;
+using CluedIn.Core.Streams.Models;
 
 namespace CluedIn.Connector.PostgreSqlServer.Connector
 {
