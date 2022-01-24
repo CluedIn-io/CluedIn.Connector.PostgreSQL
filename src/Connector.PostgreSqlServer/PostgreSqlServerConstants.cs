@@ -1,6 +1,7 @@
 using CluedIn.Connector.Common.Configurations;
 using CluedIn.Core.Providers;
 using System;
+using CluedIn.Core;
 
 namespace CluedIn.Connector.PostgreSqlServer
 {
@@ -26,49 +27,49 @@ namespace CluedIn.Connector.PostgreSqlServer
             {
                 new Control
                 {
-                    name = CommonConfigurationNames.Host,
-                    displayName = CommonConfigurationNames.Host,
+                    name = CommonConfigurationNames.Host.ToCamelCase(),
+                    displayName = CommonConfigurationNames.Host.ToDisplayName(),
                     type = "input",
                     isRequired = true
                 },
                 new Control
                 {
-                    name = CommonConfigurationNames.DatabaseName,
-                    displayName = CommonConfigurationNames.DatabaseName,
+                    name = CommonConfigurationNames.DatabaseName.ToCamelCase(),
+                    displayName = CommonConfigurationNames.DatabaseName.ToDisplayName(),
                     type = "input",
                     isRequired = true
                 },
                 new Control
                 {
-                    name = CommonConfigurationNames.Username,
-                    displayName = CommonConfigurationNames.Username,
+                    name = CommonConfigurationNames.Username.ToCamelCase(),
+                    displayName = CommonConfigurationNames.Username.ToDisplayName(),
                     type = "input",
                     isRequired = true
                 },
                 new Control
                 {
-                    name = CommonConfigurationNames.Password,
-                    displayName = CommonConfigurationNames.Password,
+                    name = CommonConfigurationNames.Password.ToCamelCase(),
+                    displayName = CommonConfigurationNames.Password.ToDisplayName(),
                     type = "password",
                     isRequired = true
                 },
                 new Control
                 {
-                    name = CommonConfigurationNames.PortNumber,
+                    name = CommonConfigurationNames.PortNumber.ToCamelCase(),
                     displayName = "Port Number (default: 5432)",
                     type = "input",
                     isRequired = false
                 },
                 new Control
                 {
-                    name = CommonConfigurationNames.Schema,
+                    name = CommonConfigurationNames.Schema.ToCamelCase(),
                     displayName = "Schema (default: cluedin)",
                     type = "input",
                     isRequired = false
                 },
                 new Control
                 {
-                    name = SSLMode,
+                    name = SSLMode.ToCamelCase(),
                     displayName = "SSLMode (default: Require)",
                     type = "Input",
                     isRequired = false
