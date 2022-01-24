@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>CluedIn.Connector.PostgreSqlServer provides connectivity to a PostgreSql Server database</Description>
+    <Description>CluedIn.Connector.PostgreSql provides connectivity to a PostgreSql Server database</Description>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Resources\SqlServer.png" />
@@ -9,7 +9,7 @@
     <EmbeddedResource Include="Resources\sqlserver.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CluedIn.Connector.Common"/>
+    <PackageReference Include="CluedIn.Connector.Common" />
     <PackageReference Include="Npgsql" />
   </ItemGroup>
 </Project>
